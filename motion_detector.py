@@ -1,3 +1,7 @@
+# USAGE
+# python motion_detector.py
+# python motion_detector.py --video videos/example_01.mp4
+
 # import the necessary packages
 import argparse
 import datetime
@@ -45,7 +49,7 @@ while True:
 		firstFrame = gray
 		continue
 
-    # compute the absolute difference between the current frame and
+	# compute the absolute difference between the current frame and
 	# first frame
 	frameDelta = cv2.absdiff(firstFrame, gray)
 	thresh = cv2.threshold(frameDelta, 25, 255, cv2.THRESH_BINARY)[1]
