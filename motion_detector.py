@@ -11,14 +11,13 @@ from picamera import PiCamera
 # initialize the camera and grab a reference to the raw camera capture
 camera = PiCamera()
 camera.resolution = (640, 480)
-camera.framerate = 16 
+camera.framerate = 16
 rawCapture = PiRGBArray(camera, size=(640, 480))
 
 # allow the camera to warmup
 time.sleep(2.5)
 
 # initialize the first frame in the video stream
-firstFrame = None
 avg = None
 
 # capture frames from the camera
@@ -35,27 +34,12 @@ for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True
 	gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 	gray = cv2.GaussianBlur(gray, (21, 21), 0)
 
-	# if the first frame is None, initialize it
-	#if firstFrame is None:
-	#	print "This is the first frame"
-	#	firstFrame = gray
-	#	# clear the stream in preparation for the next frame
-	#	rawCapture.truncate(0)
-	#	continue
 	# if the average frame is None, initialize it
 	if avg is None:
 		print("[INFO] starting background model...")
 		avg = gray.copy().astype("float")
 		rawCapture.truncate(0)
 		continue
-
-	#key = cv2.waitKey(1) & 0xFF
-	#print "Checking frames"
-
-	# compute the absolute difference between the current frame and
-	# first frame
-	#frameDelta = cv2.absdiff(firstFrame, gray)
-	#thresh = cv2.threshold(frameDelta, 5, 255, cv2.THRESH_BINARY)[1]
 
 	# accumulate the weighted average between the current frame and
 	# previous frames, then compute the difference between the current
@@ -65,11 +49,9 @@ for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True
 
 	# threshold the delta image, dilate the thresholded image to fill
 	# in holes, then find contours on thresholded image
-	thresh = cv2.threshold(frameDelta, 5, 255,
-		cv2.THRESH_BINARY)[1]
+	thresh = cv2.threshold(frameDelta, 5, 255,cv2.THRESH_BINARY)[1]
 	thresh = cv2.dilate(thresh, None, iterations=2)
-	cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
-		cv2.CHAIN_APPROX_SIMPLE)
+	cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
 	cnts = cnts[0] if imutils.is_cv2() else cnts[1]
 
 	# loop over the contours
@@ -86,8 +68,7 @@ for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True
 
 	# draw the text and timestamp on the frame
 	ts = timestamp.strftime("%A %d %B %Y %I:%M:%S%p")
-	cv2.putText(frame, "Room Status: {}".format(text), (10, 20),
-		cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+	cv2.putText(frame, "Room Status: {}".format(text), (10, 20),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 	cv2.putText(frame, ts, (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX,0.35, (0, 0, 255), 1)
 
 	# display the security feed
@@ -104,4 +85,3 @@ for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True
 # cleanup the camera and close any open windows
 camera.release()
 cv2.destroyAllWindows()
-
