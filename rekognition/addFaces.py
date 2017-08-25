@@ -17,11 +17,11 @@ rek = boto3.client('rekognition') # Setup Rekognition
 #      ('mom.jpg','Kathy_King'),
 #      ]
 
-images=[('kerri10.jpg','Kerri_Monnerat'),
-      ('kerri11.jpg','Kerri_Monnerat'),
-      ('kerri12.jpg','Kerri_Monnerat'),
-      ('kerri13.jpg','Kerri_Monnerat')
-      ]
+images=[('kerri30.jpg','Kerri_Monnerat'),
+      ('kerri31.jpg','Kerri_Monnerat'),
+      ('kerri32.jpg','Kerri_Monnerat'),
+      ('kerri33.jpg','Kerri_Monnerat')
+]
 
 # Iterate through list to upload objects to S3
 for image in images:
