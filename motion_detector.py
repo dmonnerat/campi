@@ -6,7 +6,13 @@ import cv2
 # import the necessary packages for picamera
 from picamera.array import PiRGBArray
 from picamera import PiCamera
-
+# Amazon Rekognition
+import boto3
+import math
+import sys
+import json
+import io
+import numpy as np
 
 # initialize the camera and grab a reference to the raw camera capture
 camera = PiCamera()
@@ -16,6 +22,10 @@ rawCapture = PiRGBArray(camera, size=(640, 480))
 
 # allow the camera to warmup
 time.sleep(2.5)
+
+# set up Amazon Rekognition
+rek = boto3.client('rekognition') # Setup Rekognition
+s3 = boto3.resource('s3') # Setup S3
 
 # initialize the first frame in the video stream
 avg = None
@@ -66,6 +76,12 @@ for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True
 		cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 		text = "Occupied"
 
+        # convert image into numpy array
+        data = np.fromstring(frame.getvalue(), dtype=np.uint8)
+        # turn the array into a cv2 image
+        orig = cv2.imdecode(data, 1)
+        print "Preparing image for Rekognition"
+
 	# draw the text and timestamp on the frame
 	ts = timestamp.strftime("%A %d %B %Y %I:%M:%S%p")
 	cv2.putText(frame, "Room Status: {}".format(text), (10, 20),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
@@ -75,7 +91,7 @@ for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True
 	cv2.imshow("Security Feed", frame)
 	key = cv2.waitKey(1) & 0xFF
 
-	# if the `q` key is pressed, break from the lop
+	# if the `q` key is pressed, break from the loop
 	if key == ord("q"):
 		break
 
