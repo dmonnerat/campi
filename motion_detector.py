@@ -16,9 +16,9 @@ import numpy as np
 
 # initialize the camera and grab a reference to the raw camera capture
 camera = PiCamera()
-camera.resolution = (640, 480)
+camera.resolution = (1280, 960)
 camera.framerate = 16
-rawCapture = PiRGBArray(camera, size=(640, 480))
+rawCapture = PiRGBArray(camera, size=(1280, 960))
 
 # allow the camera to warmup
 time.sleep(2.5)
@@ -29,6 +29,8 @@ s3 = boto3.resource('s3') # Setup S3
 
 # initialize the first frame in the video stream
 avg = None
+lastUploaded = datetime.datetime.now()
+motioncounter=0
 
 # capture frames from the camera
 for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
@@ -94,27 +96,33 @@ for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True
                 # if there is enough motion, send the frame to Rekognition
 				print "Preparing image for Rekognition"
 				# convert image into numpy array
-				data = np.fromstring(frame, dtype=np.uint8)
+				#data = np.fromstring(frame, dtype=np.uint8)
+				data = np.fromstring(f.getvalue(), dtype=np.uint8)
+				#data = frame
 				# turn the array into a cv2 image
-				orig = cv2.imdecode(data, 1)
+				#orig = cv2.imdecode(data, 1)
+				orig = np.frombuffer(f.array, dtype=np.uint8).reshape(960,1280,3)
 
+				#orig = frame
 				# update the last uploaded timestamp and reset the motion
 				# counter
 				lastUploaded = timestamp
 				motionCounter = 0
-
+    				cv2.imwrite('farray.jpg',f.array)
+    				cv2.imwrite('orig.jpg',orig)
+    				cv2.imwrite('frame.jpg',frame)
 				# Detect the items in the image
-				print "Resizing image"
-				r = 1000.0 / orig.shape[1]
-				dim = (100, int(orig.shape[0] * r))
+				#print "Resizing image"
+				#r = 1000.0 / orig.shape[1]
+				#dim = (100, int(orig.shape[0] * r))
 				# perform the actual resizing of the image and show it
 				#img = cv2.resize(orig, (0,0), fx = 0.5, fy = 0.5)
 				img = orig
 
-				#imgWidth = 3857
-				#imgHeight = 2571
-				imgHeight, imgWidth, imgChannels = img.shape
-				print "Resized to " + str(imgHeight) + "x" + str(imgWidth)
+				imgWidth = 1280 
+				imgHeight = 960 
+				#imgHeight, imgWidth, imgChannels = img.shape
+				#print "Resized to " + str(imgHeight) + "x" + str(imgWidth)
 
 				print "Sending to Rekognition"
 
@@ -123,7 +131,7 @@ for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True
 
 				results = rek.detect_faces(
 				Image={
-				    'Bytes': cv2.imencode('.jpg', img)[1].tostring()
+					'Bytes': cv2.imencode('.jpg', img)[1].tostring()				
 				},
 				Attributes=['ALL']
 				)
