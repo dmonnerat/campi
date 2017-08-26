@@ -3,6 +3,8 @@ import datetime
 import imutils
 import time
 import cv2
+import argparse
+import warnings
 # import the necessary packages for picamera
 from picamera.array import PiRGBArray
 from picamera import PiCamera
@@ -14,12 +16,17 @@ import json
 import io
 import numpy as np
 
-width = 1280
-height = 960
-min_motion_frames = 3
-min_threshold = 5
+# construct the argument parser and parse the arguments
+ap = argparse.ArgumentParser()
+ap.add_argument("-c", "--conf", required=True,
+	help="path to the JSON configuration file")
+args = vars(ap.parse_args())
 
+# filter warnings, load the configuration and initialize the Dropbox
+# client
+warnings.filterwarnings("ignore")
 conf = json.load(open(args["conf"]))
+client = None
 
 # initialize the camera and grab a reference to the raw camera capture
 camera = PiCamera()
