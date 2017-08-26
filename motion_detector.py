@@ -14,11 +14,14 @@ import json
 import io
 import numpy as np
 
+width = 1280
+height = 960
+
 # initialize the camera and grab a reference to the raw camera capture
 camera = PiCamera()
-camera.resolution = (1280, 960)
+camera.resolution = (width, height)
 camera.framerate = 16
-rawCapture = PiRGBArray(camera, size=(1280, 960))
+rawCapture = PiRGBArray(camera, size=(width, height))
 
 # allow the camera to warmup
 time.sleep(2.5)
@@ -95,34 +98,23 @@ for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True
 			if motionCounter >= 5:
                 # if there is enough motion, send the frame to Rekognition
 				print "Preparing image for Rekognition"
+
 				# convert image into numpy array
-				#data = np.fromstring(frame, dtype=np.uint8)
-				data = np.fromstring(f.getvalue(), dtype=np.uint8)
-				#data = frame
-				# turn the array into a cv2 image
-				#orig = cv2.imdecode(data, 1)
-				orig = np.frombuffer(f.array, dtype=np.uint8).reshape(960,1280,3)
+				#data = np.fromstring(f.getvalue(), dtype=np.uint8)
+
+				# turn the PiRGBArray in to a numpy array to send to Amazon
+				img = np.frombuffer(f.array, dtype=np.uint8).reshape(height,width,3)
 
 				#orig = frame
 				# update the last uploaded timestamp and reset the motion
 				# counter
 				lastUploaded = timestamp
 				motionCounter = 0
-    				cv2.imwrite('farray.jpg',f.array)
-    				cv2.imwrite('orig.jpg',orig)
-    				cv2.imwrite('frame.jpg',frame)
-				# Detect the items in the image
-				#print "Resizing image"
-				#r = 1000.0 / orig.shape[1]
-				#dim = (100, int(orig.shape[0] * r))
-				# perform the actual resizing of the image and show it
-				#img = cv2.resize(orig, (0,0), fx = 0.5, fy = 0.5)
-				img = orig
 
-				imgWidth = 1280 
-				imgHeight = 960 
-				#imgHeight, imgWidth, imgChannels = img.shape
-				#print "Resized to " + str(imgHeight) + "x" + str(imgWidth)
+				#Use these to see what the camera is doing
+    			#cv2.imwrite('frame.jpg',frame)
+				#cv2.imwrite('farray.jpg',f.array)
+    			#cv2.imwrite('img.jpg',img)
 
 				print "Sending to Rekognition"
 
@@ -131,7 +123,7 @@ for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True
 
 				results = rek.detect_faces(
 				Image={
-					'Bytes': cv2.imencode('.jpg', img)[1].tostring()				
+					'Bytes': cv2.imencode('.jpg', img)[1].tostring()
 				},
 				Attributes=['ALL']
 				)
@@ -150,10 +142,10 @@ for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True
 					    msg += " and they are smiling"
 					print msg
 
-					top = int(math.floor(face['BoundingBox']['Top'] * imgHeight))
-					left = int(math.floor(face['BoundingBox']['Left'] * imgWidth))
-					bottom = int(math.ceil(top + (face['BoundingBox']['Height'] * imgHeight)))
-					right = int(math.ceil(left + (face['BoundingBox']['Width'] * imgWidth)))
+					top = int(math.floor(face['BoundingBox']['Top'] * height))
+					left = int(math.floor(face['BoundingBox']['Left'] * width))
+					bottom = int(math.ceil(top + (face['BoundingBox']['Height'] * height)))
+					right = int(math.ceil(left + (face['BoundingBox']['Width'] * width)))
 
 					print "Crop boundaries: " + str(top) + ":" + str(bottom) + " " + str(left) + ":" + str(right)
 					crop_img = img[top:bottom, left:right]
@@ -186,6 +178,7 @@ for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True
 
 	# display the security feed
 	cv2.imshow("Security Feed", frame)
+
 	key = cv2.waitKey(1) & 0xFF
 
 	# if the `q` key is pressed, break from the loop
