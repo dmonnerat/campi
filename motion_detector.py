@@ -33,6 +33,8 @@ camera = PiCamera()
 camera.resolution = tuple(conf["resolution"])
 camera.framerate = conf["fps"]
 rawCapture = PiRGBArray(camera, size=tuple(conf["resolution"]))
+width = tuple(conf["resolution"])[0]
+height = tuple(conf["resolution"])[1]
 
 # allow the camera to warmup, then initialize the average frame, last
 # uploaded timestamp, and frame motion counter
@@ -111,7 +113,7 @@ for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True
 				print "Preparing image for Rekognition"
 
 				# turn the PiRGBArray in to a numpy array to send to Amazon
-				img = np.frombuffer(f.array, dtype=np.uint8).reshape(tuple(conf["resolution"])[1],tuple(conf["resolution"])[0],3)
+				img = np.frombuffer(f.array, dtype=np.uint8).reshape(height,width,3)
 
 				#orig = frame
 				# update the last uploaded timestamp and reset the motion
