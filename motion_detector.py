@@ -16,24 +16,28 @@ import numpy as np
 
 width = 1280
 height = 960
+min_motion_frames = 3
+min_threshold = 5
+
+conf = json.load(open(args["conf"]))
 
 # initialize the camera and grab a reference to the raw camera capture
 camera = PiCamera()
-camera.resolution = (width, height)
-camera.framerate = 16
-rawCapture = PiRGBArray(camera, size=(width, height))
+camera.resolution = tuple(conf["resolution"])
+camera.framerate = conf["fps"]
+rawCapture = PiRGBArray(camera, size=tuple(conf["resolution"]))
 
-# allow the camera to warmup
-time.sleep(2.5)
+# allow the camera to warmup, then initialize the average frame, last
+# uploaded timestamp, and frame motion counter
+print("[INFO] warming up...")
+time.sleep(conf["camera_warmup_time"])
+avg = None
+lastUploaded = datetime.datetime.now()
+motionCounter = 0
 
 # set up Amazon Rekognition
 rek = boto3.client('rekognition') # Setup Rekognition
 s3 = boto3.resource('s3') # Setup S3
-
-# initialize the first frame in the video stream
-avg = None
-lastUploaded = datetime.datetime.now()
-motioncounter=0
 
 # capture frames from the camera
 for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
@@ -64,7 +68,7 @@ for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True
 
 	# threshold the delta image, dilate the thresholded image to fill
 	# in holes, then find contours on thresholded image
-	thresh = cv2.threshold(frameDelta, 5, 255,cv2.THRESH_BINARY)[1]
+	thresh = cv2.threshold(frameDelta, conf["delta_thresh"], 255,cv2.THRESH_BINARY)[1]
 	thresh = cv2.dilate(thresh, None, iterations=2)
 	cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
 	cnts = cnts[0] if imutils.is_cv2() else cnts[1]
@@ -72,7 +76,7 @@ for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True
 	# loop over the contours
 	for c in cnts:
 		# if the contour is too small, ignore it
-		if cv2.contourArea(c) < 5000:
+		if cv2.contourArea(c) < conf["min_area"]:
 			continue
 
 		# compute the bounding box for the contour, draw it on the frame,
@@ -89,21 +93,18 @@ for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True
 	# check to see if the room is occupied
 	if text == "Occupied":
 		# check to see if enough time has passed between uploads
-		if (timestamp - lastUploaded).seconds >= 10:
+		if (timestamp - lastUploaded).seconds >= conf["min_upload_seconds"]:
 			# increment the motion counter
 			motionCounter += 1
 
 			# check to see if the number of frames with consistent motion is
 			# high enough
-			if motionCounter >= 5:
+			if motionCounter >= conf["min_motion_frames"]:
                 # if there is enough motion, send the frame to Rekognition
 				print "Preparing image for Rekognition"
 
-				# convert image into numpy array
-				#data = np.fromstring(f.getvalue(), dtype=np.uint8)
-
 				# turn the PiRGBArray in to a numpy array to send to Amazon
-				img = np.frombuffer(f.array, dtype=np.uint8).reshape(height,width,3)
+				img = np.frombuffer(f.array, dtype=np.uint8).reshape(tuple(conf["resolution"])[1],tuple(conf["resolution"])[0],3)
 
 				#orig = frame
 				# update the last uploaded timestamp and reset the motion
@@ -176,14 +177,15 @@ for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True
 	else:
 		motionCounter = 0
 
-	# display the security feed
-	cv2.imshow("Security Feed", frame)
+	# check to see if the frames should be displayed to screen
+	if conf["show_video"]:
+		# display the security feed
+		cv2.imshow("Security Feed", frame)
+		key = cv2.waitKey(1) & 0xFF
 
-	key = cv2.waitKey(1) & 0xFF
-
-	# if the `q` key is pressed, break from the loop
-	if key == ord("q"):
-		break
+		# if the `q` key is pressed, break from the lop
+		if key == ord("q"):
+			break
 
 	# clear the stream in preparation for the next frame
 	rawCapture.truncate(0)
