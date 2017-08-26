@@ -176,6 +176,7 @@ for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True
 							knownFaces=knownFaces+1
 							print "Hello, " + (faceResults['FaceMatches'][0]['Face']['ExternalImageId'])
 						else:
+							print "I don't know that face."
 							unknownFaces=unknownFaces+1
 
 					except:
