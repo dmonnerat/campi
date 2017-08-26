@@ -180,7 +180,7 @@ for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True
 
 					except:
 						unknownFaces=unknownFaces+1
-						#print("Unexpected error:", sys.exc_info()[0])
+						print("Unexpected error:", sys.exc_info()[0])
 
 	# otherwise, the room is not occupied
 	else:
